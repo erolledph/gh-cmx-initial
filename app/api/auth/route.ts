@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server"
 import { checkAuth } from "@/lib/auth"
 
+export const runtime = 'edge'
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const contentType = request.headers.get('content-type')
+    let body: Record<string, string> = {}
+    
+    if (contentType?.includes('application/json')) {
+      body = await request.json()
+    }
+    
     const password = body?.password
 
     if (!password) {
