@@ -19,13 +19,13 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-    console.log(`[${requestId}] Admin password is set, length: ${adminPassword.length}`)
+    console.log(`[${requestId}] Admin password is set, length: ${adminPassword.length}, first char code: ${adminPassword.charCodeAt(0)}`)
 
     let password = ''
     try {
       const body = await request.json() as Record<string, unknown>
       password = body?.password as string
-      console.log(`[${requestId}] JSON parsed successfully, password length: ${password?.length || 0}`)
+      console.log(`[${requestId}] JSON parsed successfully, password length: ${password?.length || 0}, first char code: ${password?.charCodeAt(0) || 'N/A'}`)
     } catch (parseError) {
       console.error(`[${requestId}] JSON parse error:`, parseError instanceof Error ? parseError.message : parseError)
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
@@ -36,11 +36,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password required" }, { status: 400 })
     }
 
-    const isValid = password === adminPassword
-    console.log(`[${requestId}] Password validation: ${isValid ? 'VALID' : 'INVALID'} (provided length: ${password.length}, expected length: ${adminPassword.length})`)
+    // Trim and normalize both passwords
+    const normalizedProvided = String(password).trim()
+    const normalizedExpected = String(adminPassword).trim()
+    
+    console.log(`[${requestId}] Before normalization - provided: "${password}" (${password.length}), expected: "${adminPassword}" (${adminPassword.length})`)
+    console.log(`[${requestId}] After normalization - provided: "${normalizedProvided}" (${normalizedProvided.length}), expected: "${normalizedExpected}" (${normalizedExpected.length})`)
+
+    const isValid = normalizedProvided === normalizedExpected
+    console.log(`[${requestId}] Password validation: ${isValid ? 'VALID ✓' : 'INVALID ✗'}`)
 
     if (!isValid) {
-      console.warn(`[${requestId}] Authentication failed - invalid password`)
+      console.warn(`[${requestId}] Authentication failed - passwords do not match`)
+      console.warn(`[${requestId}] Provided bytes: ${Array.from(normalizedProvided).map(c => c.charCodeAt(0)).join(',')}`)
+      console.warn(`[${requestId}] Expected bytes: ${Array.from(normalizedExpected).map(c => c.charCodeAt(0)).join(',')}`)
       return NextResponse.json({ error: "Invalid password" }, { status: 401 })
     }
 
