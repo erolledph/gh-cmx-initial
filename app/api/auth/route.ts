@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server"
-import { checkAuth } from "@/lib/auth"
+import type { NextRequest } from "next/server"
 
 export const runtime = 'edge'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const contentType = request.headers.get('content-type')
-    let body: Record<string, string> = {}
-    
-    if (contentType?.includes('application/json')) {
-      body = await request.json()
+    const adminPassword = process.env.ADMIN_PASSWORD
+
+    if (!adminPassword) {
+      console.error('ADMIN_PASSWORD environment variable is not set')
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 })
     }
-    
-    const password = body?.password
+
+    let password = ''
+    try {
+      const body = await request.json() as Record<string, unknown>
+      password = body?.password as string
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError)
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    }
 
     if (!password) {
       return NextResponse.json({ error: "Password required" }, { status: 400 })
     }
 
-    if (!checkAuth(password)) {
+    if (password !== adminPassword) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 })
     }
 
@@ -26,6 +33,7 @@ export async function POST(request: Request) {
     response.cookies.set('admin-auth', 'true', {
       httpOnly: true,
       secure: true,
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24,
       path: '/',
     })
