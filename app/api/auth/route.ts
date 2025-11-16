@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
@@ -9,71 +9,41 @@ export async function POST(request: NextRequest) {
   try {
     console.log(`[${requestId}] Auth POST request started`)
 
-    // Get all environment variables for debugging
     const adminPassword = process.env.ADMIN_PASSWORD
-    const allEnv = {
-      HAS_PASSWORD: !!adminPassword,
-      PASSWORD_LENGTH: adminPassword?.length || 0,
-      PASSWORD_TYPE: typeof adminPassword,
-      NODE_ENV: process.env.NODE_ENV,
-    }
     
-    console.log(`[${requestId}] Environment check:`, JSON.stringify(allEnv))
-
     if (!adminPassword) {
       console.error(`[${requestId}] CRITICAL: ADMIN_PASSWORD not set`)
-      const response = NextResponse.json({
-        error: "ADMIN_PASSWORD not configured in environment",
-        debug: { requestId, env: allEnv }
+      return NextResponse.json({
+        error: "Server misconfiguration",
+        debug: { requestId, hasPassword: false }
       }, { status: 500 })
-      return response
     }
 
     let password = ''
-    let body: Record<string, unknown> = {}
     
     try {
-      body = await request.json() as Record<string, unknown>
+      const body = await request.json() as Record<string, unknown>
       password = String(body?.password || '').trim()
-      console.log(`[${requestId}] Request body parsed, password length: ${password.length}`)
     } catch (parseError) {
-      console.error(`[${requestId}] JSON parse failed:`, parseError)
+      console.error(`[${requestId}] JSON parse failed`)
       return NextResponse.json({ 
-        error: "Invalid request body",
-        debug: { requestId }
+        error: "Invalid request body"
       }, { status: 400 })
     }
 
     if (!password) {
-      console.warn(`[${requestId}] No password in request`)
+      console.warn(`[${requestId}] No password provided`)
       return NextResponse.json({ 
-        error: "Password required",
-        debug: { requestId }
+        error: "Password required"
       }, { status: 400 })
     }
 
-    const normalizedProvided = password.trim().toLowerCase()
-    const normalizedExpected = String(adminPassword).trim().toLowerCase()
+    const isValid = password === adminPassword
     
-    const isValid = normalizedProvided === normalizedExpected
-    
-    console.log(`[${requestId}] Password check:`, {
-      match: isValid,
-      providedLen: password.length,
-      expectedLen: adminPassword.length,
-      normalizedMatch: normalizedProvided === normalizedExpected
-    })
-
     if (!isValid) {
       console.warn(`[${requestId}] Password mismatch`)
       return NextResponse.json({ 
-        error: "Invalid password",
-        debug: { 
-          requestId,
-          match: false,
-          providedLength: password.length,
-          expectedLength: adminPassword.length
-        }
+        error: "Invalid password"
       }, { status: 401 })
     }
 
@@ -89,12 +59,9 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
-    console.error(`[${requestId}] Unhandled error:`, errorMsg)
+    console.error(`[${requestId}] Error:`, errorMsg)
     return NextResponse.json(
-      { 
-        error: "Internal server error",
-        debug: { requestId, message: errorMsg }
-      },
+      { error: "Internal server error" },
       { status: 500 }
     )
   }
