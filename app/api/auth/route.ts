@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+export const runtime = 'edge'
+
 export async function POST(request: NextRequest) {
   try {
     const adminPassword = process.env.ADMIN_PASSWORD
@@ -37,9 +39,10 @@ export async function POST(request: NextRequest) {
       success: true
     })
 
+    // Cloudflare Pages compatible cookie settings
     response.cookies.set('admin-auth', 'true', {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 86400,
       path: '/',
