@@ -4,7 +4,7 @@ compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 [env.production]
-vars = { GITHUB_OWNER = "erolledph", GITHUB_REPO = "gh-cmx-initial", NEXT_PUBLIC_SITE_URL = "https://gh-cms-blog.pages.dev" }
+vars = { GITHUB_OWNER = "erolledph", GITHUB_REPO = "gh-cmx-initial", NEXT_PUBLIC_SITE_URL = "https://https://gh-cmx-initial.pages.dev" }
 
 [env.preview]
 vars = { GITHUB_OWNER = "erolledph", GITHUB_REPO = "gh-cmx-initial", NEXT_PUBLIC_SITE_URL = "http://localhost:3000" }

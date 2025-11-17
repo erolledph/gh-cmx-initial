@@ -35,12 +35,14 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
-    const response = NextResponse.json({ 
+    const response = NextResponse.json({
       success: true
     })
+
+    // Cloudflare Pages compatible cookie settings
     response.cookies.set('admin-auth', 'true', {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 86400,
       path: '/',
