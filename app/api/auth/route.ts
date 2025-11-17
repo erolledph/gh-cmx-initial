@@ -5,7 +5,9 @@ export const runtime = 'edge'
 
 export async function POST(request: NextRequest) {
   try {
-    const adminPassword = process.env.ADMIN_PASSWORD
+    // @ts-ignore - Cloudflare Pages environment
+    const env = process.env as any
+    const adminPassword = env.ADMIN_PASSWORD
 
     if (!adminPassword) {
       return NextResponse.json({
@@ -18,20 +20,22 @@ export async function POST(request: NextRequest) {
       const body = await request.json() as { password?: string }
       password = String(body?.password || '').trim()
     } catch (e) {
-      return NextResponse.json({ 
-        error: "Invalid JSON in request body" 
+      return NextResponse.json({
+        error: "Invalid JSON in request body"
       }, { status: 400 })
     }
 
     if (!password) {
-      return NextResponse.json({ 
-        error: "Password required" 
+      return NextResponse.json({
+        error: "Password required"
       }, { status: 400 })
     }
 
-    if (password !== adminPassword.trim()) {
-      return NextResponse.json({ 
-        error: "Invalid password" 
+    const trimmedAdminPassword = String(adminPassword).trim()
+
+    if (password !== trimmedAdminPassword) {
+      return NextResponse.json({
+        error: "Invalid password"
       }, { status: 401 })
     }
 
@@ -42,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Cloudflare Pages compatible cookie settings
     response.cookies.set('admin-auth', 'true', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       maxAge: 86400,
       path: '/',
@@ -52,7 +56,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Auth error:', error)
     return NextResponse.json({
-      error: "Internal server error"
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 })
   }
 }
